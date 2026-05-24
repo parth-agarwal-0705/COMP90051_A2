@@ -1,45 +1,70 @@
 import numpy as np
 
-def stratified_kfold(X, y, n_splits=10, shuffle=True, random_state=None):
+def stratified_kfold(X, y, groups, n_splits=10, shuffle=True, random_state=None):
     """
-    Splits data into train and test indices from scratch while preserving class ratios.
+    Splits data into train and test indices ensuring that:
+    No group (patient ID) is present in both train and test sets for any fold.
     """
     y = np.array(y)
-    n_samples = len(y)
+    groups = np.array(groups)
     
-    # Handle shuffling if requested
+    unique_classes = np.unique(y)
+    n_classes = len(unique_classes)
+    
+    # Map each unique group (patient) to its total class counts and its dominant class
+    unique_groups = np.unique(groups)
     if shuffle:
         rng = np.random.default_rng(random_state)
+        rng.shuffle(unique_groups)
+        
+    group_class_counts = {}
+    group_labels = {}
     
-    # Group the original indices by their unique class labels
-    unique_classes = np.unique(y)
-    class_indices = {c: np.where(y == c)[0] for c in unique_classes}
+    for g in unique_groups:
+        group_mask = (groups == g)
+        y_g = y[group_mask]
+        
+        # Count how many of each class this specific patient has
+        counts = np.bincount(y_g, minlength=n_classes)
+        group_class_counts[g] = counts
+        # Identify the primary label for this group 
+        group_labels[g] = np.argmax(counts)
+        
+    # Initialize empty buckets for tracking split contents
+    fold_indices = [[] for _ in range(n_splits)]
+    fold_class_counts = np.zeros((n_splits, n_classes))
     
-    # Shuffle indices within each class to ensure randomness across runs
-    if shuffle:
-        for c in class_indices:
-            rng.shuffle(class_indices[c])
-            
-    # Create buckets for each fold
-    folds = [[] for _ in range(n_splits)]
-    
-    # Distribute indices round-robin style across folds to preserve stratification
+    # Distribute groups class-by-class to maintain stratification proportions
     for c in unique_classes:
-        indices = class_indices[c]
-        for i, idx in enumerate(indices):
-            fold_idx = i % n_splits
-            folds[fold_idx].append(idx)
+        # Pull all patients whose dominant class matches 'c'
+        class_groups = [g for g in unique_groups if group_labels[g] == c]
+        
+        # Sort these patients by total scans descending to distribute heavy groups first
+        class_groups = sorted(class_groups, key=lambda g: np.sum(group_class_counts[g]), reverse=True)
+        
+        for g in class_groups:
+            g_counts = group_class_counts[g]
             
-    # Construct the final train/test index pairs for all splits
+            # Find the specific fold that currently needs this class the most 
+            best_fold = np.argmin(fold_class_counts[:, c])
+            
+            # Record all matching indices for this entire patient group into that fold
+            actual_indices = np.where(groups == g)[0]
+            fold_indices[best_fold].extend(actual_indices)
+            
+            # Update the class tracking state for that fold
+            fold_class_counts[best_fold] += g_counts
+            
+    # Construct the standard output train/test tuples
     splits = []
     for test_fold_idx in range(n_splits):
-        test_indices = np.array(folds[test_fold_idx])
+        test_idx = np.array(fold_indices[test_fold_idx], dtype=int)
         
-        # Merge all other folds to create the training set
-        train_indices = np.concatenate([
-            folds[i] for i in range(n_splits) if i != test_fold_idx
-        ])
+        # Combine all indices from other folds to form the training collection
+        train_idx = np.concatenate([
+            fold_indices[i] for i in range(n_splits) if i != test_fold_idx
+        ], axis=0).astype(int)
         
-        splits.append((train_indices, test_indices))
+        splits.append((train_idx, test_idx))
         
     return splits
