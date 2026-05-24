@@ -1,6 +1,7 @@
 import cv2
+import numpy as np
 
-def preprocess_image(path, size = 224):
+def preprocess_image(path: str, size = 224) -> np.ndarray:
     '''
     Input: path to read an image file, size for the output image dimensions ie (size x size pixels)
     Apply resizing, CLAHE (Contrast Limited Adaptive Histogram Equalization)
