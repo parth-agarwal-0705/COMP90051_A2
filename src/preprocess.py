@@ -1,0 +1,22 @@
+import cv2
+
+def preprocess_image(path, size = 224):
+    '''
+    Input: path to read an image file, size for the output image dimensions ie (size x size pixels)
+    Apply resizing, CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    Output: numpy array image represenation
+    '''
+    # greyscale image
+    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+
+    # resize to size
+    img = cv2.resize(img, (size, size)) 
+
+    # denoise
+    img = cv2.fastNlMeansDenoising(img, h=12)
+
+    # CLAHE good for xrays? https://pmc.ncbi.nlm.nih.gov/articles/PMC12784379/
+    clahe = cv2.createCLAHE(clipLimit = 4, tileGridSize = (8, 8)) # 8 x 8 default 
+    img = clahe.apply(img)
+
+    return img
