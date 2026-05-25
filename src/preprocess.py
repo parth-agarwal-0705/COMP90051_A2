@@ -21,3 +21,20 @@ def preprocess_image(path: str, size = 224) -> np.ndarray:
     img = clahe.apply(img)
 
     return img
+
+
+def preprocess_image_array(img: np.ndarray, size: int = 224) -> np.ndarray:
+    '''
+    Apply preprocessing to an already loaded image
+    '''
+    # resize to size
+    img = cv2.resize(img, (size, size)) 
+
+    # denoise
+    img = cv2.fastNlMeansDenoising(img, h=12)
+
+    # CLAHE good for xrays? https://pmc.ncbi.nlm.nih.gov/articles/PMC12784379/
+    clahe = cv2.createCLAHE(clipLimit = 4, tileGridSize = (8, 8)) # 8 x 8 default 
+    img = clahe.apply(img)
+
+    return img
