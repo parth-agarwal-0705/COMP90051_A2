@@ -1,7 +1,7 @@
 # COMP90051_A2
 
 # Question: 
-How Do Different Models Maintain Classification Metrics for OCT Image Scan Classification When Subjected to Simulated Artifacts?
+How Do Different Models Maintain Classification Metrics for OCT Image Scan Classification When Subjected to Simulated Artefacts?
 
 # Team
 Andy Chen 1452766
