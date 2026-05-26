@@ -54,7 +54,7 @@ def apply_degradation(image: np.ndarray, corruption_type = None, severity: int =
 
 
     elif corruption_type == "occlusion":
-        # failed scan w possible shadow over it (?)
+        # failed scan w possible shadow over it
         # apply dark band
         h, w = image.shape
         occluded = image.copy()
